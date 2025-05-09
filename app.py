@@ -1,32 +1,20 @@
-from flask import Flask, render_template, request
-import joblib
-import numpy as np
+import gradio as gr
+from sklearn.datasets import load_iris
+from sklearn.ensemble import RandomForestClassifier
 
-app = Flask(__name__)
-model = joblib.load("iris_model.pkl")
+iris = load_iris()
+model = RandomForestClassifier()
+model.fit(iris.data, iris.target)
 
-@app.route("/")
-def home():
-    return render_template("index.html")
+def predict(sepal_length, sepal_width, petal_length, petal_width):
+    prediction = model.predict([[sepal_length, sepal_width, petal_length, petal_width]])
+    return iris.target_names[prediction][0]
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    if request.method == "POST":
-        data = [
-            float(request.form['sepal_length']),
-            float(request.form['sepal_width']),
-            float(request.form['petal_length']),
-            float(request.form['petal_width'])
-        ]
-        prediction = model.predict([data])
-        iris_classes = ['Setosa', 'Versicolor', 'Virginica']
-        result = iris_classes[prediction[0]]
-        return render_template("index.html", prediction=result)
+inputs = [
+    gr.Slider(4.0, 8.0, label="Sepal Length"),
+    gr.Slider(2.0, 4.5, label="Sepal Width"),
+    gr.Slider(1.0, 7.0, label="Petal Length"),
+    gr.Slider(0.1, 2.5, label="Petal Width")
+]
 
-if __name__ == "__main__":
-    app.run(debug=True)
-
-import os
-port = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=port)
-
+gr.Interface(fn=predict, inputs=inputs, outputs="text", title="Iris Classifier").launch()
